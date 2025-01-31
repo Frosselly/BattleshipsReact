@@ -32,3 +32,17 @@ table, tbody, tr, td, div{
 .miss{
   background-color: oklch(.704 .04 256.788);
 }
+
+.destroyed{
+  background-color: oklch(.828 .189 84.429)
+}
+
+.ship{
+  background-color: oklch(.841 .238 128.85)
+}
+
+.game{
+  display:flex;
+  flex-direction: row;
+  gap: 24px;
+}
