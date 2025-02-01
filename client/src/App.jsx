@@ -4,10 +4,13 @@ import "./App.css";
 
 function App() {
   const [text, setText] = useState("Press PLAY");
-
+  const [gameId, setGameId] = useState(null);
+  const id = crypto.randomUUID();
+  
   useEffect(() => {
-    
-  }, [])
+    if(gameId)
+      connectGame()
+  }, [gameId])
 
 
   const [boardOne, setBoardOne] = useState(
@@ -23,25 +26,42 @@ function App() {
   async function play() {
 
     
-    let data = { board: boardOne, ships: Array.from(ships)};
+    let data = { board: boardOne, ships: Array.from(ships), id, computer:false};
 
-    let res = await fetch("http://localhost:8000/play", {
+    fetch("http://localhost:8000/play", {
       method: "POST",
       headers: {
         'Content-Type': 'application/json', // Set the content type
     },
       body: JSON.stringify(data),
+    }).then((res) => res.json())
+    .then((data) => {
+      setGameId(data)
+      setText("CONNECTING")
+      
     })
+
+  }
+
+  async function connectGame(){
+    // console.log(gameId)
+    let res = await fetch(`http://localhost:8000/game/${gameId}`)
+    console.log("CONNECTING")
+
     if(res.ok){
       setText("Your turn")
-      //TODO update to show found player 2
+      console.log("FOUND")
     }
-
+    else{
+      setTimeout(() => {
+        connectGame()
+      }, 1000)
+    }
   }
 
   function fire(r, c, b) {
     console.log(b);
-    let data = { row: r, col: c };
+    let data = { row: r, col: c , id};
     console.log(data)
 
     fetch("http://localhost:8000/fire", {
@@ -63,16 +83,24 @@ function App() {
       });
   }
 
-  function receiveFire(){
+  async function receiveFire(){
     setText("Enemy turn")
-    fetch("http://localhost:8000/receiveFire").then((response) => response.json())
-    .then((data) => {
+    let res = await fetch(`http://localhost:8000/receiveFire/${id}`)
+    // .then((response) => response.json())
+
+    if(res.ok){
+      let data = res.json()
       setBoardOne(data.board);
       if(data.hasWon)
         announceWinner(data.hasWon)
       else
         setText("Your turn")
-    })
+    }
+    else{
+      setTimeout(() => {
+        receiveFire()
+      }, 1000)
+    }
 
   }
 

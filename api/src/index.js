@@ -1,88 +1,102 @@
-const {Game} = require("./Game")
-const {Board} = require("./Board")
+const { Game } = require("./Game");
+const { Board } = require("./Board");
 
+const express = require("express");
+const cors = require("cors");
 
-const express = require('express')
-const cors = require('cors')
-
-const PORT = 8000
+const PORT = 8000;
 
 const app = express();
 app.use(express.json());
-app.use(cors({
-    credentials:true,
-    origin:"http://localhost:5173"
-}))
+app.use(
+  cors({
+    credentials: true,
+    origin: "http://localhost:5173",
+  })
+);
 
 app.listen(PORT, () => {
-    console.log(`Listening port ${PORT}`);
-})
+  console.log(`Listening port ${PORT}`);
+});
 
+let games = new Map();
+let game = new Game();
 
-
-let games = new Map()
-let game = new Game()
-
-
-app.post("/test", (req, res) => {
-    console.log("Test ok")
-    res.json("ok")
-})
+let count = 0;
+app.post("/connect", (req, res) => {
+  console.log(req.id);
+  console.log("USER ", count++);
+  res.json("ok");
+});
 
 app.post("/play", (req, res) => {
-    console.log("GAME STARTED")
+  console.log("GAME CREATED");
 
-    const { board, ships } = req.body;
-    game.p1.secretBoard = board
-    game.p1.ships = new Map(ships)
+  const { board, ships, id, computer } = req.body;
+  game.addPlayer(id, board, new Map(ships));
 
-    const board2 = Board.placeShips()
-    game.p2.secretBoard = board2.boardC
-    game.p2.ships = board2.shipsC
+  // console.log(game)
+  if (computer) {
+    const board2 = Board.placeShips();
+    game.addPlayer(board2.boardC, board2.shipsC);
+  }
 
-    res.json(game.p2.hitsBoard)
+  res.json(game.id);
+});
 
-})
+app.get("/game/:gameId", (req, res) => {
+  // console.log(req.params.gameId)
+  
+  if (!game.p2) {
+    res.sendStatus(404);
+  } else {
+    console.log("MATCH FOUND");
+    res.json("ok");
+  }
+});
 
 app.post("/fire", (req, res) => {
-    const { row, col } = req.body;
-    console.log("FIRED AT ", row, col)
-    
-    game.p2.receiveAttack(row, col)
-    const won = game.checkWin()
-    if(won)
-        game = new Game()
-    else
-        game.nextTurn()
-    console.log(game.p2.secretBoard)
-    console.log(game.p2.ships)
-    res.json({board:game.p2.hitsBoard, hasWon: won})
-})
+  const { row, col, id } = req.body;
+  console.log("sent ID ", id);
+  console.log("ID ", game.getCurrPlayer().id);
+  if (id !== game.getCurrPlayer().id){
+    res.status(404);
+    // return;
+ }
 
+  console.log("FIRED AT ", row, col);
 
-app.get("/receiveFire", (req, res) => {
-    const { row, col } = req.body;
-    console.log("FIRE RECEIVED AT ", row, col)
-    console.log(game.p1.secretBoard)
-    Board.randomMove(game.p1)
-    const won = game.checkWin()
-    if(won)
-        game = new Game()
-    else
-        game.nextTurn()
+  game.handleAttack(row, col);
+  const won = game.checkWin();
+  if (won) game = new Game();
+  else game.nextTurn();
+  let hitsBoard = game.getCurrPlayer().hitsBoard;
+  res.json({ board: hitsBoard, hasWon: won });
+});
 
-    setTimeout(() => {
-        res.json({board: game.p1.secretBoard, hasWon: won})
-    }, 0)
-    
-})
+app.get("/receiveFire/:id", (req, res) => {
+//   const { row, col, id } = req.body;
+  if (req.params.id !== game.getCurrPlayer().id){
+     res.status(404);
+    //  return;
+  }
+
+  console.log("FIRE RECEIVED");
+
+  // Board.randomMove(game.p1)
+  const won = game.checkWin();
+
+  if (won) game = new Game();
+
+  let secretBoard = game.getCurrPlayer().secretBoard;
+//   setTimeout(() => {
+//     res.json({ board: secretBoard, hasWon: won });
+//   }, 0);
+
+  res.json({ board: secretBoard, hasWon: won });
+});
 
 app.get("/reset", (req, res) => {
-    console.log("RESET CALLED")
-    game = new Game()
-})
-
-
-
-
-
+  console.log("RESET CALLED");
+  game = new Game();
+});

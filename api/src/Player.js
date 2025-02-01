@@ -1,12 +1,14 @@
 
 class Player{
+    id = null
     secretBoard = Array.from(Array(10), () => Array.from(Array(10)));
     hitsBoard = Array.from(Array(10), () => Array.from(Array(10)));
     ships = new Map()
     shipsAlive = 10
 
-    constructor(board, ships = null){
-        this.board = board
+    constructor(id, board, ships = null){
+        this.id = id
+        this.secretBoard = board
         this.ships = ships
     }
 
