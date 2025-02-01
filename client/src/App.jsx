@@ -105,6 +105,11 @@ function App() {
       <div className="controls">
         <button onClick={play}>PLAY</button>
         <button onClick={reset}>RESET</button>
+        <label htmlFor="">
+          Computer
+          <input type="checkbox" name="" id="" />
+        </label>
+        
       </div>
     </>
   );

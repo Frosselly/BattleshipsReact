@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-function Board({ owner, onShipPlace, onFire, board, ships}) {
+export default function Board({ owner, onShipPlace, onFire, board, ships}) {
   const colors = [
     "oklch(0.924 0.12 95.746)",
     "oklch(0.945 0.129 101.54)",
@@ -12,7 +12,11 @@ function Board({ owner, onShipPlace, onFire, board, ships}) {
   ]
 
   useEffect(() => {
-    if (owner) placeShips();
+    if (owner){ 
+      console.log("PLACING")
+      placeShips();
+    }
+
   }, []);
 
   const Cell = ({ state }) => {
@@ -33,13 +37,16 @@ function Board({ owner, onShipPlace, onFire, board, ships}) {
 
   function placeShips() {
     const normal = [1, 1, 1, 2, 2, 2, 3, 3, 4, 5];
+    // const normal = [5];
 
     let boardC = Array.from(Array(10), () => Array.from(Array(10)));
     let shipsC = new Map();
 
+    // let randomTries = 1000
+
     for (let index = 0; index < normal.length; ) {
-      let xR = Math.floor(Math.random() * 9) + 1;
-      let yR = Math.floor(Math.random() * 9) + 1;
+      let xR = Math.floor(Math.random() * 10);
+      let yR = Math.floor(Math.random() * 10);
 
       let length = undefined;
       length = normal[index];
@@ -51,11 +58,44 @@ function Board({ owner, onShipPlace, onFire, board, ships}) {
         fillShip(boardC, xR, yR, length, axis, shipsC.size - 1);
         index++;
       }
+      // randomTries--;
+      if(index >= 4){
+        let fullBoard = placeEmpty(boardC, index, normal, shipsC)
+        boardC = fullBoard.boardC
+        shipsC = fullBoard.shipsC
+        break;
+      }
     }
+    if(shipsC.length < 10) placeShips()
+
     onShipPlace(boardC, shipsC);
-    // setBoard(boardC)
-    // setShips(shipsC);
   }
+
+  function placeEmpty(boardC, index, normal, shipsC){
+
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        let length = normal[index]
+
+        if (checkValid(boardC, row, col, length, "v")) {
+          index++
+          shipsC.set(shipsC.size, { len: length, hits: [], color:colors[Math.floor(Math.random() * 6)] });
+          fillShip(boardC, row, col, length, "v", shipsC.size - 1);
+        }
+        else if(checkValid(boardC, row, col, length, "h")){
+          index++
+          shipsC.set(shipsC.size, { len: length, hits: [], color:colors[Math.floor(Math.random() * 6)] });
+          fillShip(boardC, row, col, length, "h", shipsC.size - 1);
+        }
+
+        if(index >= normal.length) break;
+      }
+      if(index >= normal.length) break;
+    }
+
+    return {boardC, shipsC}
+  }
+  
 
   function checkValid(boardC, x, y, length, axis) {
     x--;
@@ -73,12 +113,23 @@ function Board({ owner, onShipPlace, onFire, board, ships}) {
           (axis == "v" && col === x && y <= row && row < y + length)
         ) {
           if (boardC[row][col] !== undefined) return false;
+          if(!checkAround(row, col, boardC)) return false
           placed++;
           if (placed >= length) break;
         }
       }
       if (placed >= length) break;
     }
+    return true;
+  }
+
+  function checkAround(r,c,boardC){
+    for (let row = r-1; row <= r+1; row++) {
+      for (let col = c-1; col <= c+1; col++) {
+        if(row < 0 || col < 0 || row > 9 || col > 9) continue;
+        if (boardC[row][col] !== undefined) return false;
+    }
+  }
     return true;
   }
 
@@ -104,24 +155,6 @@ function Board({ owner, onShipPlace, onFire, board, ships}) {
   //TODO change to server side async Fire
   function checkCell(row, col) {
     if (owner) return;
-
-    // let boardCopy = structuredClone(board);
-    // const key = board[row][col];
-    // if (ships.has(key)) {
-    //   boardCopy[row][col] = "hit";
-
-    //   let shipsUpdate = structuredClone(ships);
-    //   let shipData = ships.get(key);
-    //   shipData.hits.push([row, col]);
-    //   shipsUpdate.set(key, shipData);
-    //   setShips(shipsUpdate);
-
-    //   if (shipData.hits.length >= shipData.len) {
-    //     destroyShip(boardCopy, shipData.hits);
-    //   }
-    // } else {
-    //   boardCopy[row][col] = "miss";
-    // }
     onFire(row, col, board);
   }
 
@@ -148,6 +181,5 @@ function Board({ owner, onShipPlace, onFire, board, ships}) {
   );
 }
 
-export default Board;
 
 // function fireCell(row, col) {}
