@@ -7,6 +7,8 @@ class Game{
     p1 = null
     p2 = null
 
+    hasEnded = false
+
     constructor(){
         this.id = crypto.randomUUID()
     }

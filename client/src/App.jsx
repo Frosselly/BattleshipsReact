@@ -5,12 +5,17 @@ import "./App.css";
 function App() {
   const [text, setText] = useState("Press PLAY");
   const [gameId, setGameId] = useState(null);
-  const id = crypto.randomUUID();
+  const [id, setId] = useState(null);
   
   useEffect(() => {
     if(gameId)
       connectGame()
   }, [gameId])
+
+  useEffect(() => {
+    if(!id)
+      setId(crypto.randomUUID());
+  }, [id])
 
 
   const [boardOne, setBoardOne] = useState(
@@ -45,12 +50,24 @@ function App() {
 
   async function connectGame(){
     // console.log(gameId)
-    let res = await fetch(`http://localhost:8000/game/${gameId}`)
+    let res = await fetch(`http://localhost:8000/game/${id}`)
     console.log("CONNECTING")
-
+    
+   
     if(res.ok){
-      setText("Your turn")
+      let data = await res.json()
+      console.log(data)
       console.log("FOUND")
+      if(data.turn){
+        setText("Your turn")
+        console.log("Your turn")
+      }
+      else{
+        setText("Enemy turn")
+        receiveFire()
+        console.log("Enemy turn")
+      }
+      
     }
     else{
       setTimeout(() => {
@@ -76,7 +93,7 @@ function App() {
       .then((data) => {
         console.log(data)
         setBoardTwo(data.board);
-        if(data.hasWon)
+        if(data.hasEnded)
           announceWinner(data.hasWon)
         else
           receiveFire();
@@ -84,14 +101,14 @@ function App() {
   }
 
   async function receiveFire(){
-    setText("Enemy turn")
+    
     let res = await fetch(`http://localhost:8000/receiveFire/${id}`)
-    // .then((response) => response.json())
+    console.log("WAITING")
 
     if(res.ok){
-      let data = res.json()
+      let data = await res.json()
       setBoardOne(data.board);
-      if(data.hasWon)
+      if(data.hasEnded)
         announceWinner(data.hasWon)
       else
         setText("Your turn")
