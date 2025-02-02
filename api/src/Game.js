@@ -8,6 +8,7 @@ class Game{
     p2 = null
 
     hasEnded = false
+    winner = null;
 
     constructor(){
         this.id = crypto.randomUUID()
@@ -24,13 +25,20 @@ class Game{
         
     }
 
-    checkWin(){
-        if(this.p1.shipsAlive <= 0){
-            return "p2"
+    checkWin(id){
+
+        if(this.p1.shipsAlive <= 0 && id === this.p2.id){
+            return true
         }
-        if(this.p2.shipsAlive <= 0){
-            return "p1"
+        if(this.p2.shipsAlive <= 0 && id === this.p1.id){
+            return true
         }
+        if(this.hasEnded && this.winner && id === this.winner.id){
+            
+            return true
+        }
+        
+
         return false;
     }
 

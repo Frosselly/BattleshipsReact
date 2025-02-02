@@ -31,7 +31,7 @@ function App() {
   );
 
   async function play() {
-
+    await reset()
     
     let data = { board: boardOne, ships: Array.from(ships), id, computer:false};
 
@@ -137,9 +137,9 @@ function App() {
 
   function announceWinner(winner) {
     if(!winner){
-      setText(`YOU LOST`)
+      setText(`YOU LOST...`)
     }else{
-      setText(`${winner} WON!!!`)
+      setText(`YOU WON!!!`)
     }
     
     setCanFire(false)
@@ -152,16 +152,16 @@ function App() {
     
   }
 
-  function reset() {
-    // fetch(`http://localhost:8000/reset/${gameId}`)
+  async function reset() {
+    await fetch(`http://localhost:8000/reset/${id}`)
 
     setBoardTwo(Array.from(Array(10), () => Array.from(Array(10))))
-    // setBoardOne(Array.from(Array(10), () => Array.from(Array(10))))
     setGameId(null)
     let {boardC, shipsC} = BoardMethods.placeShips()
     updateBoard(boardC, shipsC);
 
     setText("Press PLAY");
+    return;
   }
 
   return (
