@@ -31,14 +31,20 @@ app.post("/connect", (req, res) => {
 
 app.post("/play", (req, res) => {
   console.log("GAME CREATED");
-
+  
   const { board, ships, id, computer } = req.body;
-  game.addPlayer(id, board, new Map(ships));
+
+  if (game.p2) {
+    game = new Game();
+  }
+  
 
   // console.log(game)
   if (computer) {
     const board2 = Board.placeShips();
     game.addPlayer(board2.boardC, board2.shipsC);
+  }else{
+    game.addPlayer(id, board, new Map(ships));
   }
 
   res.json(game.id);
@@ -84,7 +90,10 @@ app.post("/fire", (req, res) => {
 });
 
 app.get("/receiveFire/:id", (req, res) => {
-//   const { row, col, id } = req.body;
+  if(game.hasEnded){
+    res.json({hasWon: false, hasEnded: true });
+    return;
+  }
   if (req.params.id !== game.getCurrPlayer().id){
      res.sendStatus(404);
      return;
@@ -101,7 +110,7 @@ app.get("/receiveFire/:id", (req, res) => {
 //   }, 0);
 
   res.json({ board: secretBoard, hasWon: won, hasEnded: game.hasEnded });
-  //TODO delete game
+
 });
 
 app.get("/reset", (req, res) => {

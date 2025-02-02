@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import Board from "./board";
 import "./App.css";
+import BoardMethods from "./BoardMethods.js";
 
 function App() {
   const [text, setText] = useState("Press PLAY");
+  const [canFire, setCanFire] = useState(false)
   const [gameId, setGameId] = useState(null);
   const [id, setId] = useState(null);
   
@@ -61,8 +63,10 @@ function App() {
       if(data.turn){
         setText("Your turn")
         console.log("Your turn")
+        setCanFire(true)
       }
       else{
+        setCanFire(false)
         setText("Enemy turn")
         receiveFire()
         console.log("Enemy turn")
@@ -77,6 +81,9 @@ function App() {
   }
 
   function fire(r, c, b) {
+
+    if(!canFire) return;
+
     console.log(b);
     let data = { row: r, col: c , id};
     console.log(data)
@@ -95,8 +102,11 @@ function App() {
         setBoardTwo(data.board);
         if(data.hasEnded)
           announceWinner(data.hasWon)
-        else
+        else{
+          setText("Enemy turn")
+          setCanFire(false)
           receiveFire();
+        }
       });
   }
 
@@ -107,11 +117,15 @@ function App() {
 
     if(res.ok){
       let data = await res.json()
-      setBoardOne(data.board);
+      
       if(data.hasEnded)
         announceWinner(data.hasWon)
       else
+      {
+        setBoardOne(data.board);
         setText("Your turn")
+        setCanFire(true)
+      } 
     }
     else{
       setTimeout(() => {
@@ -122,9 +136,13 @@ function App() {
   }
 
   function announceWinner(winner) {
+    if(!winner){
+      setText(`YOU LOST`)
+    }else{
+      setText(`${winner} WON!!!`)
+    }
     
-    setText(`${winner} WON!!!`)
-    
+    setCanFire(false)
   }
 
   function updateBoard(board, ships) {
@@ -135,9 +153,15 @@ function App() {
   }
 
   function reset() {
-    fetch("http://localhost:8000/reset")
+    // fetch(`http://localhost:8000/reset/${gameId}`)
+
     setBoardTwo(Array.from(Array(10), () => Array.from(Array(10))))
     // setBoardOne(Array.from(Array(10), () => Array.from(Array(10))))
+    setGameId(null)
+    let {boardC, shipsC} = BoardMethods.placeShips()
+    updateBoard(boardC, shipsC);
+
+    setText("Press PLAY");
   }
 
   return (
