@@ -16,7 +16,7 @@ app.use(
 );
 
 app.listen(PORT, () => {
-  // console.log(`Listening port ${PORT}`);
+  console.log(`Listening port ${PORT}`);
 });
 
 let games = new Map();

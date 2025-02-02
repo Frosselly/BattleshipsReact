@@ -81,8 +81,8 @@ function App() {
   }
 
   function fire(r, c, b) {
-
     if(!canFire) return;
+    if(b[r][c]) return
 
     console.log(b);
     let data = { row: r, col: c , id};

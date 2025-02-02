@@ -26,6 +26,12 @@ class Game{
     }
 
     checkWin(id){
+        if(this.p1.shots <= 0 && id === this.p2.id){
+            return true
+        }
+        if(this.p2.shots <= 0 && id === this.p2.id){
+            return true
+        }
 
         if(this.p1.shipsAlive <= 0 && id === this.p2.id){
             return true
@@ -49,9 +55,11 @@ class Game{
     handleAttack(row, col){
         if(this.turn === 'p1'){
             this.p2.receiveAttack(row, col)
+            this.p1.shots--;
         }
         else{
             this.p1.receiveAttack(row, col)
+            this.p2.shots--;
         }
 
     }
