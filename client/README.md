@@ -1,8 +1,14 @@
-# React + Vite
+# Battleships
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Yra docker konfiguracija galima paleisti su `docker-compose up`
 
-Currently, two official plugins are available:
+Puslapio adresas http://localhost:5173/ \
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Naudojama [pnpm](https://pnpm.io/) package manager
+
+Norint paleisti rekia atsisiusti bibliotekas paleidus aplankuose ./api ir ./client \
+"pnpm install"
+
+Paleisti galima komandomis atskiruose terminaluose \
+`cd ./api && node src/index.js` \
+`cd ./client && pnpm dev`
