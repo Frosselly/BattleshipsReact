@@ -8,6 +8,7 @@ function App() {
   const [canFire, setCanFire] = useState(false)
   const [gameId, setGameId] = useState(null);
   const [id, setId] = useState(null);
+  const [useComputer, setUseComputer] = useState(false);
   
   useEffect(() => {
     if(gameId)
@@ -33,7 +34,8 @@ function App() {
   async function play() {
     await reset()
     
-    let data = { board: boardOne, ships: Array.from(ships), id, computer:false};
+    let data = { board: boardOne, ships: Array.from(ships), id, computer:useComputer};
+    console.log(data)
 
     fetch("http://localhost:8000/play", {
       method: "POST",
@@ -176,7 +178,7 @@ function App() {
         <button onClick={reset}>RESET</button>
         <label htmlFor="">
           Computer
-          <input type="checkbox" name="" id="" />
+          <input type="checkbox" name="" id="" onChange={(e) => setUseComputer(e.target.value)}/>
         </label>
         
       </div>

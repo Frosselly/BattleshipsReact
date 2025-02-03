@@ -7,7 +7,7 @@ class Player{
     shipsAlive = 10
     shots = 25
 
-    constructor(id, board, ships = null){
+    constructor(id=null, board, ships = null){
         this.id = id
         this.secretBoard = board
         this.ships = ships

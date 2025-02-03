@@ -55,7 +55,8 @@ app.post("/play", (req, res) => {
     }
     gamesUsers.set(id, game.id);
     const board2 = Board.placeShips();
-    game.addPlayer(board2.boardC, board2.shipsC);
+    game.addPlayer(null, board2.boardC, board2.shipsC);
+    game.computer = true;
     games.set(game.id, game);
 
     res.json(gamesUsers.get(id));
@@ -118,8 +119,8 @@ app.post("/fire", (req, res) => {
   }
 
   // // console.log("FIRED AT ", row, col);
-
   game.handleAttack(row, col);
+  console.log("P1",game.p1.shots)
   const won = game.checkWin(id);
   if (won) game.hasEnded = true;
   game.nextTurn();
@@ -143,17 +144,34 @@ app.get("/receiveFire/:id", (req, res) => {
     return;
   }
 
+  if(game.computer && game.getCurrPlayer().id === null){
+    Board.randomMove(game.p1)
+    game.p2.shots--;
+    
+   
+
+    const won = game.checkWin(null);
+    if (won) game.hasEnded = true;
+    game.nextTurn();
+    
+    let secretBoard = game.getCurrPlayer().secretBoard;
+    games.set(game.id, game);
+    res.json({ board: secretBoard, hasWon: !won, hasEnded: game.hasEnded });
+    return;
+  }
+
   if (id !== game.getCurrPlayer().id) {
     res.sendStatus(404);
     return;
   }
   
 
-  // console.log("FIRE RECEIVED");
-
+  console.log("FIRE RECEIVED");
+  
   // Board.randomMove(game.p1)
-  const won = game.checkWin(id);
 
+  const won = game.checkWin(id);
+  // if (won) game.hasEnded = true;
   let secretBoard = game.getCurrPlayer().secretBoard;
   //   setTimeout(() => {
   //     res.json({ board: secretBoard, hasWon: won });

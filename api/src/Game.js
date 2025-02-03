@@ -9,12 +9,13 @@ class Game{
 
     hasEnded = false
     winner = null;
+    computer = false
 
     constructor(){
         this.id = crypto.randomUUID()
     }
 
-    addPlayer(id, board, ships){
+    addPlayer(id=null, board, ships){
         if(!this.p1)
         {
             this.p1 = new Player(id, board, ships)
@@ -29,7 +30,7 @@ class Game{
         if(this.p1.shots <= 0 && id === this.p2.id){
             return true
         }
-        if(this.p2.shots <= 0 && id === this.p2.id){
+        if(this.p2.shots <= 0 && id === this.p1.id){
             return true
         }
 
