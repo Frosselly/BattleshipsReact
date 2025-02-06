@@ -4,6 +4,10 @@ const { Board } = require("./Board");
 const express = require("express");
 const cors = require("cors");
 
+const {createServer} = require("node:http");
+const {Server} = require("socket.io");
+
+
 const PORT = 8000;
 
 const app = express();
@@ -14,6 +18,8 @@ app.use(
     origin: "http://localhost:5173",
   })
 );
+const server = createServer(app)
+const io = new Server(server)
 
 app.listen(PORT, () => {
   console.log(`Listening port ${PORT}`);
