@@ -3,22 +3,47 @@ import Board from "./board";
 import "./App.css";
 import BoardMethods from "./BoardMethods.js";
 
+import {io} from "socket.io-client"
+
+const socket = io("http://localhost:8000")
+
+
+
 function App() {
   const [text, setText] = useState("Press PLAY");
   const [canFire, setCanFire] = useState(false)
-  const [gameId, setGameId] = useState(null);
-  const [id, setId] = useState(null);
   const [useComputer, setUseComputer] = useState(false);
   
-  useEffect(() => {
-    if(gameId)
-      connectGame()
-  }, [gameId])
+  
 
   useEffect(() => {
-    if(!id)
-      setId(crypto.randomUUID());
-  }, [id])
+    socket.on("found", ({turn}) => {
+      setText(turn ? "Your turn" : "Enemy turn");
+      setCanFire(turn);
+    });
+  
+    socket.on("handleMove", (data) => {
+      if(data.hasEnded) {
+        announceWinner(data.hasWon);
+        return;
+      }
+  
+      if(data.isAttacker) {
+        setBoardTwo(data.board);
+        setText("Enemy turn");
+        setCanFire(false);
+      } else {
+        setBoardOne(data.board);
+        setText("Your turn");
+        setCanFire(true);
+      }
+    });
+
+    socket.on("end", ({winner}) => {
+      setText(winner ? "YOU WON!!!" : "YOU LOST...");
+      setCanFire(false);
+    });
+  }, []);
 
 
   const [boardOne, setBoardOne] = useState(
@@ -34,108 +59,19 @@ function App() {
   async function play() {
     await reset()
     
-    let data = { board: boardOne, ships: Array.from(ships), id, computer:useComputer};
-    console.log(data)
+    let data = { board: boardOne, ships: Array.from(ships), computer:useComputer};
+    console.log("PLAY", data)
 
-    fetch("http://localhost:8000/play", {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json', // Set the content type
-    },
-      body: JSON.stringify(data),
-    }).then((res) => res.json())
-    .then((data) => {
-      setGameId(data)
-      setText("CONNECTING")
-      
-    })
+    socket.emit("searchGame", data)
+    setText("CONNECTING")
 
-  }
-
-  async function connectGame(){
-    // console.log(gameId)
-    let res = await fetch(`http://localhost:8000/game/${id}`)
-    console.log("CONNECTING")
-    
-   
-    if(res.ok){
-      let data = await res.json()
-      console.log(data)
-      console.log("FOUND")
-      if(data.turn){
-        setText("Your turn")
-        console.log("Your turn")
-        setCanFire(true)
-      }
-      else{
-        setCanFire(false)
-        setText("Enemy turn")
-        receiveFire()
-        console.log("Enemy turn")
-      }
-      
-    }
-    else{
-      setTimeout(() => {
-        connectGame()
-      }, 1000)
-    }
   }
 
   function fire(r, c, b) {
-    if(!canFire) return;
-    if(b[r][c]) return
-
-    console.log(b);
-    let data = { row: r, col: c , id};
-    console.log(data)
-
-    fetch("http://localhost:8000/fire", {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json', // Set the content type
-    },
-      body: JSON.stringify(data),
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data)
-        setBoardTwo(data.board);
-        if(data.hasEnded)
-          announceWinner(data.hasWon)
-        else{
-          setText("Enemy turn")
-          setCanFire(false)
-          receiveFire();
-        }
-      });
+    if(!canFire || b[r][c]) return;
+    socket.emit("handleMove", { row: r, col: c });
   }
 
-  async function receiveFire(){
-    
-    let res = await fetch(`http://localhost:8000/receiveFire/${id}`)
-    console.log("WAITING")
-
-    if(res.ok){
-      let data = await res.json()
-      
-      if(data.hasEnded)
-        announceWinner(data.hasWon)
-      else
-      {
-        setBoardOne(data.board);
-        setText("Your turn")
-        setCanFire(true)
-      } 
-    }
-    else{
-      setTimeout(() => {
-        receiveFire()
-      }, 1000)
-    }
-
-  }
 
   function announceWinner(winner) {
     if(!winner){
@@ -155,10 +91,9 @@ function App() {
   }
 
   async function reset() {
-    await fetch(`http://localhost:8000/reset/${id}`)
+    socket.emit("reset")
 
     setBoardTwo(Array.from(Array(10), () => Array.from(Array(10))))
-    setGameId(null)
     let {boardC, shipsC} = BoardMethods.placeShips()
     updateBoard(boardC, shipsC);
 

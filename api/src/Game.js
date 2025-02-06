@@ -2,7 +2,7 @@ const {Player} = require("./Player")
 
 class Game{
     id = "#"
-    turn = 'p1'
+    turn = Math.random() > 0.5 ? 'p1' : 'p2'
 
     p1 = null
     p2 = null

@@ -4,24 +4,27 @@ const { Board } = require("./Board");
 const express = require("express");
 const cors = require("cors");
 
-const {createServer} = require("node:http");
-const {Server} = require("socket.io");
-
+const { createServer } = require("node:http");
+const { Server } = require("socket.io");
 
 const PORT = 8000;
 
 const app = express();
-app.use(express.json());
 app.use(
   cors({
     credentials: true,
     origin: "http://localhost:5173",
   })
 );
-const server = createServer(app)
-const io = new Server(server)
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    credentials: true,
+  },
+});
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Listening port ${PORT}`);
 });
 
@@ -32,162 +35,94 @@ var queue = []; //store games with one player
 // let game = new Game();
 
 let count = 0;
-app.post("/connect", (req, res) => {
-  // console.log(req.id);
-  // console.log("USER ", count++);
-  res.json("ok");
+
+io.on("connection", (socket) => {
+  const userId = socket.id;
+  console.log("connection");
+  socket.on("searchGame", ({ board, ships, computer }) => {
+    if (gamesUsers.has(userId)) {
+      endPreviousGame(userId);
+    }
+
+    if (queue.length === 0) {
+      let game = new Game();
+      game.addPlayer(userId, board, new Map(ships));
+      games.set(game.id, game);
+      gamesUsers.set(userId, game.id);
+      queue.push(game.id);
+    } else {
+      let gameId = queue.pop();
+      let game = games.get(gameId);
+      game.addPlayer(userId, board, new Map(ships));
+      games.set(game.id, game);
+      gamesUsers.set(userId, game.id);
+
+      // Notify both players about the game start and turn
+      let players = [game.p1.id, game.p2.id];
+      players.forEach((playerId, index) => {
+        console.log("found", playerId);
+        console.log("turn", playerId === game.getCurrPlayer().id);
+        io.to(playerId).emit("found", {
+          turn: playerId === game.getCurrPlayer().id,
+        });
+      });
+      console.log("Game matched");
+    }
+  });
+
+  socket.on("handleMove", ({ row, col }) => {
+    let game = games.get(gamesUsers.get(userId));
+    if (!game || game.hasEnded) return;
+
+    game.handleAttack(row, col);
+    const won = game.checkWin(userId);
+    if (won) game.hasEnded = true;
+
+    let currPlayer = game.getCurrPlayer();
+    let otherPlayer = currPlayer.id === game.p1.id ? game.p2 : game.p1;
+
+    game.nextTurn();
+    games.set(game.id, game);
+
+    io.to(currPlayer.id).emit("handleMove", {
+      board: otherPlayer.hitsBoard,
+      isAttacker: true,
+      hasWon: won,
+      hasEnded: game.hasEnded,
+    });
+
+    io.to(otherPlayer.id).emit("handleMove", {
+      board: otherPlayer.secretBoard,
+      isAttacker: false,
+      hasWon: !won,
+      hasEnded: game.hasEnded,
+    });
+
+    if (won) {
+      io.to(currPlayer.id).emit("end", { winner: true });
+      io.to(otherPlayer.id).emit("end", { winner: false });
+    }
+  });
+
+  socket.on("reset", () => {
+    endPreviousGame(userId);
+  });
+
+  socket.on("disconnect", () => {
+    endPreviousGame(userId);
+  });
 });
 
 function endPreviousGame(id) {
-  if(!gamesUsers.has(id) || !games.has(gamesUsers.get(id))) return;
-  let gameId = gamesUsers.get(id)
+  if (!gamesUsers.has(id) || !games.has(gamesUsers.get(id))) return;
+  let gameId = gamesUsers.get(id);
   let endGame = games.get(gameId);
-      endGame.hasEnded = true;
-      endGame.winner = endGame.p1.id === id ? endGame.p2 : endGame.p1;
-      endGame.checkWin(id)
-      games.set(gameId, endGame);
+
+  endGame.hasEnded = true;
+  endGame.winner = endGame.p1.id === id ? endGame.p2 : endGame.p1;
+  let otherPlayerId = endGame.p1.id === id ? endGame.p2.id : endGame.p1.id;
+  io.to(otherPlayerId).emit("end", { winner: true });
+
+  gamesUsers.delete(id);
+  games.delete(gameId);
 }
-
-app.post("/play", (req, res) => {
-  // console.log("GAME CREATED");
-  const { board, ships, id, computer } = req.body;
-
-  if (computer) {
-    let game = new Game();
-    game.addPlayer(id, board, new Map(ships));
-    games.set(game.id, game);
-    if (gamesUsers.has(id)) {
-      endPreviousGame(id)
-    }
-    gamesUsers.set(id, game.id);
-    const board2 = Board.placeShips();
-    game.addPlayer(null, board2.boardC, board2.shipsC);
-    game.computer = true;
-    games.set(game.id, game);
-
-    res.json(gamesUsers.get(id));
-    return;
-  } 
-
-  if (queue.length <= 0) {
-    let game = new Game();
-    game.addPlayer(id, board, new Map(ships));
-    games.set(game.id, game);
-    if (gamesUsers.has(id)) {
-      endPreviousGame(id)
-    }
-    gamesUsers.set(id, game.id);
-    queue.push(game.id);
-  }else if(queue.at(-1) !== gamesUsers.get(id)){
-    let game = games.get(queue.pop());
-    if (gamesUsers.has(id)) {
-      endPreviousGame(id)
-    }
-    gamesUsers.set(id, game.id);
-
-    game.addPlayer(id, board, new Map(ships));
-    games.set(game.id, game);
-  }
-  
-
-  res.json(gamesUsers.get(id));
-});
-
-app.get("/game/:id", (req, res) => {
-  
-  
-  let id = req.params.id
-  if (!gamesUsers.has(id) || !games.has(gamesUsers.get(id))) {
-    res.sendStatus(404);
-    return;
-  }
-  let game = games.get(gamesUsers.get(id))
-  if (!game.p2) {
-    res.sendStatus(404);
-  } else {
-    if (id === game.getCurrPlayer().id) {
-      res.json({ turn: true });
-    } else {
-      res.json({ turn: false });
-    }
-    // console.log("MATCH FOUND");
-  }
-});
-
-app.post("/fire", (req, res) => {
-  
-  const { row, col, id } = req.body;
-
-  let game = games.get(gamesUsers.get(id))
-  if (id !== game.getCurrPlayer().id) {
-    res.status(404);
-    return;
-  }
-
-  // // console.log("FIRED AT ", row, col);
-  game.handleAttack(row, col);
-  console.log("P1",game.p1.shots)
-  const won = game.checkWin(id);
-  if (won) game.hasEnded = true;
-  game.nextTurn();
-  let hitsBoard = game.getCurrPlayer().hitsBoard;
-  games.set(game.id, game);
-  res.json({ board: hitsBoard, hasWon: won, hasEnded: game.hasEnded });
-});
-
-app.get("/receiveFire/:id", (req, res) => {
-  
-  let id = req.params.id
-
-  if (!gamesUsers.has(id) || !games.has(gamesUsers.get(id))) {
-    res.sendStatus(404);
-    return;
-  }
-  let game = games.get(gamesUsers.get(id))
-  if (game.hasEnded) {
-    const won = game.checkWin(id);
-    res.json({ hasWon: won, hasEnded: true });
-    return;
-  }
-
-  if(game.computer && game.getCurrPlayer().id === null){
-    Board.randomMove(game.p1)
-    game.p2.shots--;
-    
-   
-
-    const won = game.checkWin(null);
-    if (won) game.hasEnded = true;
-    game.nextTurn();
-    
-    let secretBoard = game.getCurrPlayer().secretBoard;
-    games.set(game.id, game);
-    res.json({ board: secretBoard, hasWon: !won, hasEnded: game.hasEnded });
-    return;
-  }
-
-  if (id !== game.getCurrPlayer().id) {
-    res.sendStatus(404);
-    return;
-  }
-  
-
-  console.log("FIRE RECEIVED");
-  
-  // Board.randomMove(game.p1)
-
-  const won = game.checkWin(id);
-  // if (won) game.hasEnded = true;
-  let secretBoard = game.getCurrPlayer().secretBoard;
-  //   setTimeout(() => {
-  //     res.json({ board: secretBoard, hasWon: won });
-  //   }, 0);
-
-  res.json({ board: secretBoard, hasWon: won, hasEnded: game.hasEnded });
-});
-
-app.get("/reset/:id", (req, res) => {
-  // console.log("RESET CALLED");
-  endPreviousGame(req.params.id)
-  res.json("ok")
-});
