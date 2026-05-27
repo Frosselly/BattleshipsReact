@@ -6,12 +6,12 @@ A real-time multiplayer Battleship game built with React, Express, and Socket.IO
 
 - [Overview](#-overview)
 - [Project Features](#-project-features)
-- [Architecture](#architecture)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
+- [Architecture](#-architecture)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Usage](#-usage)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#-project-structure)
 
 ## 🎮 Overview
 
